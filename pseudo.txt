@@ -1,0 +1,7 @@
+- acquire packages and package.json
+- gitignore and hide password for route variables
+- connection.js - call sequel
+-index.js
+    - inquirer prompts
+    - inquirer prompts will then have queries to add or display pieces of db
+
