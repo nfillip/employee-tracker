@@ -13,7 +13,7 @@ VALUES
 ("Fork Truck Driver", 50000,1),
 ("HR Senior Lead", 110000,2),
 ("Secretary", 77000,2),
-("Counciler", 80000,2),
+("Counselor", 80000,2),
 ("Operations Senior Engineer", 190000,3),
 ("Operations Mid Level Dev", 120000,3),
 ("Operations Intern", 40000,3);

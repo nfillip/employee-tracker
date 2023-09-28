@@ -1,37 +1,27 @@
-//THEN I am presented with the following options: view all departments, view all roles, view all employees, add a department, add a role, add an employee, and update an employee role
+//PACKAGE MODULES 
 const util  =require('util')
 const connection = require("./connection");
+    //promisifying db.query
 const query = util.promisify(connection.query).bind(connection)
-const mysql = require("mysql2");
 const inquirer = require('inquirer');
-require("dotenv").config();
 
-const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "root",
-  database: "employeeTracker_db",
-});
-
+//FUNCTIONS
+//view departments
 const viewDepartments = async (init) => {
     try {
         const output = await query(`SELECT * FROM departments;`);
         console.table(output)
-        
         init();
     }catch (err){
         console.log(err)
     }
-   
-  
-  
 };
 
+//view roles
 const viewRoles = async (init) => {
     try {
         const output = await query(`SELECT roles.id as id , title, salary, name AS department FROM roles JOIN departments ON departments.id = roles.department_id `);
         console.table(output);
-        
         init();
     }catch{
         console.log(err)
@@ -39,21 +29,22 @@ const viewRoles = async (init) => {
     }
 }
 
-   
-
+//view employees
   const viewEmployees = async (init) => {
-
     try{
-        const output = await query(`SELECT * FROM employees`);
-        console.table(output);
-        
+        const output = await query(`SELECT e1.id, e1.first_name, e1.last_name, roles.title, departments.name as department, roles.salary, CONCAT(e2.first_name," ", e2.last_name) as Manager
+        FROM employees as e1 
+        JOIN roles ON roles.id = e1.role_id 
+        JOIN departments ON departments.id = roles.department_id
+        LEFT JOIN employees as e2 ON e1.manager_id = e2.id`);
+        console.table(output);       
         init();
     }catch{
         console.log(err)
-    }
-    
+    }    
   };
 
+//get array of department items
 const getDepartmentArray = async () => {
     try{
         const output = await query("SELECT id AS value, name FROM departments");
@@ -65,6 +56,29 @@ const getDepartmentArray = async () => {
   
 };
 
+//get array of role items
+const getRolesArray = async () => {
+    try{
+        const output = await query("SELECT id AS value, title as name FROM roles");
+        return output;
+    }catch (err)
+    {
+        console.log(err)
+    }
+}
+
+//get array of employee items
+const getEmployeeArray = async () => {
+    try {
+        const output = await query("SELECT id AS value, CONCAT(first_name,' ', last_name) as name FROM employees");
+        return output;
+    }
+    catch (err) {
+        console.log(err)
+    }
+}
+
+//add a Department
 const addDepartment = async (init) => {
     try{
         const data = await inquirer.prompt([
@@ -75,15 +89,16 @@ const addDepartment = async (init) => {
             }
         ])
         const output = await query(`INSERT INTO departments(name) VALUES (?)`,data.newDepartment);
-        console.log("Department added Successfully")
-        init();
+        console.log("\033[102mDepartment added Successfully\033[0m")
+        viewDepartments(init);
     }
     catch {
         console.log(err)
     }
 }
 
- const addRole = async (init) => {
+//add a role
+const addRole = async (init) => {
     try{
         const departmentArray = await getDepartmentArray();
         const data = await inquirer.prompt([
@@ -100,211 +115,86 @@ const addDepartment = async (init) => {
             {
             type: "rawlist",
             message: "Please enter what Department this role is in: ",
-            choices: roles,
+            choices: departmentArray,
             name: "department_id",
             }
         ])
-        const output = await 
+        await query(`INSERT INTO roles(title, salary, department_id) VALUES ("${data.newRoleTitle}",${data.newRoleSalary},${data.department_id})`);
+        console.log("\033[102mRole added Successfully\033[0m");
+        viewRoles(init);
         
     }catch (err){
         console.log(err)
     }
  }
 
-// const addRole = async (init) => {
-//   let idName;
-//   const string2 = `SELECT id from departments WHERE name = "${department}"`;
-//   db.query(string2, (err, data) => {
-//     if (err) {
-//       console.log(err);
-//     } else {
-//         console.log(data)
-//       idName = data[0].id;
-//       const string1 = `INSERT INTO roles(title,salary,department_id) VALUES ("${title}", ${salary},${idName})`;
-//       db.query(string1, (err, data) => {
-//         if (err) {
-//           console.log("ERORRRRRRR");
-//           console.log(err);
-//         } else {
-//           console.log(`Role added Successfully`);
-//           viewRoles();
-//         }
-//       });
-//     }
-//   });
-// };
-
-const addEmployee = async (first_name, last_name, role, manager) => {
-  let roleId;
-  let managerId;
-  const string1 = `SELECT id from roles WHERE title = "${role}"`;
-  db.query(string1, (err, data) => {
-    if (err) {
-      console.log(err);
-    } else {
-      roleId = data[0].id;
-      const string2 = `SELECT id from employees WHERE first_name = "${manager}"`;
-      db.query(string2, (err, data) => {
-        if (err) {
-          console.log(err);
-        } else {
-          managerId = data[0].id;
-          const string3 = `INSERT INTO employees(first_name,last_name,role_id,manager_id) VALUES ("${first_name}", "${last_name}",${roleId}, ${managerId})`;
-          db.query(string3, (err, data) => {
-            if (err) {
-              console.log("ERORRRRRRR");
-              console.log(err);
-            } else {
-              console.log(`Employee added Successfully`);
-              viewEmployees();
+//add an employee
+const addEmployee = async (init) => {
+    try{
+        const employeeArray = await getEmployeeArray();
+        const rolesArray = await getRolesArray();
+        const data = await inquirer.prompt([
+            {
+            type: "input",
+            message: "First Name:  ",
+            name: "newEmployeeFirst",
+            },
+            {
+            type: "input",
+            message: "Last Name:  ",
+            name: "newEmployeeLast",
+            },
+            {
+            type: "rawlist",
+            message: "Please select the role: ",
+            choices: rolesArray,
+            name: "newEmployeeRole",
+            },
+            {
+            type: "rawlist",
+            message: "Please select the manager: ",
+            choices: employeeArray,
+            name: "newEmployeeManager",
             }
-          });
-        }
-      });
+        ]);
+        await query(`INSERT INTO employees(first_name, last_name, role_id, manager_id) VALUES ("${data.newEmployeeFirst}","${data.newEmployeeLast}",${data.newEmployeeRole}, ${data.newEmployeeManager})`);
+        console.log("\033[102mEmployee added Successfully\033[0m");
+        viewEmployees(init);
     }
-  });
+    catch (err)
+    {
+        console.log(err)
+    } 
 };
 
-const updateEmployeeRole = async (firstName, updatedRole) => {
-    let nameId;
-    let roleId;
-    db.query(`SELECT id from employees WHERE first_name = "${firstName}"`, (err,data) => {
-        if (err) {
-            console.log(err);
-        } else {
-            nameId = data[0].id
-            db.query(`SELECT id from roles WHERE title = "${updatedRole}"`, (err, data) => {
-                if (err) {
-                console.log(err);
-                } else {
-                roleId = data[0].id;
-                 db.query(`UPDATE employees SET role_id = "${roleId}" WHERE id = ${nameId}`, (err,data) => {
-                    if (err) {
-                        console.log(err)
-                    }else {
-                         console.log("Employee Role Updated Successfully")
-                         viewEmployees()
-                    }
-                   
-                 });
-                
-                }
-            })    
-        }
-    })
-    
+//update employee role
+const updateEmployeeRole = async (init) => {
+    try{
+        const employeeArray = await getEmployeeArray();
+        const rolesArray = await getRolesArray();
+        const data = await inquirer.prompt([
+            {
+            type: "rawlist",
+            message: "Please select the employee you want to update: ",
+            choices: employeeArray,
+            name: "employeeName",
+            },
+            {
+            type: "rawlist",
+            message: "Please select the new role: ",
+            choices: rolesArray,
+            name: "updatedRole",
+            }
+        ])
+        await query(`UPDATE employees SET role_id = "${data.updatedRole}" WHERE id = ${data.employeeName}`)
+        console.log("\033[102mEmployee Role updated Successfully\033[0m")
+        viewEmployees(init);
+    }catch(err) {
+        console.log(err)
+    }
 }
-// class Company {
-//     constructor(subject) {
-//         this.subject = subject;
-//     }
 
-//     // getTable(input) {
-//     //     const stringInput = `SELECT * FROM ${input};`;
-//     //     db.query(stringInput, function (err, results) {
-//     //         if (err) {
-//     //             console.log(error)
-//     //         } else {
-//     //             console.table(results)
-//     //         }
-//     //     })
-
-//     // }
-
-//     getEmployeeList(){
-//         db.query("SELECT * FROM employees")
-//     }
-// }
-
-// // class Department extends Company {
-// //     constructor(department) {
-// //         super(department)
-// //         this.department = department;
-// //     }
-
-// //     addDepartment() {
-// //         console.log(this.department)
-// //         db.query(`INSERT INTO departments(name) VALUES (?)`, this.department, (err,data) => {
-// //             if(err){
-// //                 console.log(err)
-// //             }else {
-// //                 console.log(`${this.department} added successfully to departments table`)
-// //             }
-// //         })
-// //     }
-
-// // }
-
-// class Role extends Company {
-//     constructor(title, salary, department) {
-//         super(department)
-//         this.title = title,
-//         this.salary = salary,
-//         this.department = department
-//     }
-
-//     addRole() {
-//         let idName;
-//         const string2 = `SELECT id from departments WHERE name = "${this.department}"`
-//         db.query(string2, (err, data) => {
-//             if (err){
-
-//                 console.log(err)
-//             }else {
-//                 idName = data[0].id
-//                 const string1 = `INSERT INTO roles(title,salary,department_id) VALUES ("${this.title}", ${this.salary},${idName})`
-//                 db.query(string1, (err,data) => {
-//                     if(err){
-//                         console.log("ERORRRRRRR")
-//                         console.log(err)
-//                     }else {
-//                         console.log(`Role added Successfully`)
-
-//                     }
-//         })
-
-//             }
-//         })
-
-//     }
-
-// }
-
-// class Employee extends Company {
-//     constructor(title, salary, department) {
-//         super(department)
-//         this.title = title,
-//         this.salary = salary,
-//         this.department = department
-//     }
-
-//     addRole() {
-//         let idName;
-//         const string2 = `SELECT id from departments WHERE name = "${this.department}"`
-//         db.query(string2, (err, data) => {
-//             if (err){
-
-//                 console.log(err)
-//             }else {
-//                 idName = data[0].id
-//                 const string1 = `INSERT INTO roles(title,salary,department_id) VALUES ("${this.title}", ${this.salary},${idName})`
-//                 db.query(string1, (err,data) => {
-//                     if(err){
-//                         console.log("ERORRRRRRR")
-//                         console.log(err)
-//                     }else {
-//                         console.log(`Role added Successfully`)
-
-//                     }
-//         })
-
-//             }
-//         })
-
-//     }
-
-// }
-
+//EXPORTS
 module.exports = {
   viewDepartments,
   viewRoles,

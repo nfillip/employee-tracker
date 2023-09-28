@@ -1,0 +1,11 @@
+- acquire packages and package.json
+- gitignore and hide password for route variables
+- connection.js
+    - call sequel and env
+-index.js
+    - inquirer prompts
+    - inquirer prompts will then call to function in another file
+-db/index.js
+    - contain functions with query packages 
+
+
