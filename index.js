@@ -3,24 +3,7 @@ const inquirer = require('inquirer');
 
 // Import the model
 const dbIndex = require('./db/index');
-// const mysql = require('mysql2');
-// require('dotenv').config();
 
-// const db = mysql.createConnection(
-//     {
-//         host: 'localhost',
-//         user: "root",
-//         password: "root",
-//         database: "employeeTracker_db"
-//     }
-// )
-// db.query("SELECT * FROM departments", (err, results) => {
-//     if (err) {
-//         console.log(err)
-//     }else {
-//         console.log(results)
-//     }
-// })
 const init = async()=> {
     inquirer
         .prompt([
@@ -34,59 +17,21 @@ const init = async()=> {
         .then((data) => {
             switch(data.action) {
                 case "view all departments":
-                    dbIndex.viewDepartments();
+                    dbIndex.viewDepartments(init);
+                    break;
                 case "view all roles":
-                    dbIndex.viewRoles();
+                    dbIndex.viewRoles(init);
+                    break;
                 case "view all employees":
-                    dbIndex.viewEmployees(temp[2])
-                    // const company = new dbIndex.Company(temp[2])
-                    // company.getTable(temp[2]);
+                    dbIndex.viewEmployees(init);
                     break;
                 case "add a department":
-                    inquirer.prompt([
-                        {
-                        type: "input",
-                        message: "Please type new department name:  ",
-                        name: "newDepartment",
-                        }
-                    ]).then((data) => {
-                        console.log(`${data.newDepartment} - department added`)
-                        // const department = new dbIndex.Department(data.newDepartment)
-                        dbIndex.addDepartment(data.newDepartment);
-                        
-                        
-                        //TO DO: Call a function to add a department to departments table
-                    })  
+                    dbIndex.addDepartment(init);
+                    
                     break;
                 case "add a role":
+                    dbIndex.addRole(init);
                     
-                    inquirer.prompt([
-                        {
-                        type: "input",
-                        message: "Please enter Title of role:  ",
-                        name: "newRoleTitle",
-                        },
-                        {
-                        type: "input",
-                        message: "Please enter role's salary:  ",
-                        name: "newRoleSalary",
-                        },
-                        {
-                        type: "rawlist",
-                        message: "Please enter what Department this role is in: ",
-                        choices: ["Operations","Human Resources", "Logistics"],
-                        name: "newRoleDepartment",
-                        }
-                    ]).then((data) => {
-                        // console.log(data)
-                        const {newRoleTitle, newRoleSalary, newRoleDepartment} = data;
-                        // const role = new dbIndex.Role(newRoleTitle, newRoleSalary, newRoleDepartment);
-                        dbIndex.addRole(newRoleTitle,newRoleSalary,newRoleDepartment);
-                        // role.addRole();
-                        
-
-                        //TO DO: call function to add a role with these values
-                    })
                     break;
                 case "add an employee":    
                 inquirer.prompt([
@@ -153,4 +98,46 @@ const init = async()=> {
         })
 }
 
+function addRole(roles, cb) {
+
+    inquirer.prompt([
+        {
+        type: "input",
+        message: "Please enter Title of role:  ",
+        name: "newRoleTitle",
+        },
+        {
+        type: "input",
+        message: "Please enter role's salary:  ",
+        name: "newRoleSalary",
+        },
+        {
+        type: "rawlist",
+        message: "Please enter what Department this role is in: ",
+        choices: roles,
+        name: "department_id",
+        }
+    ]).then((data) => {
+        const {newRoleTitle, newRoleSalary, department_id} = data;
+        // dbIndex.addRole(newRoleTitle,newRoleSalary,newRoleDepartment);
+        console.log(department_id)
+        cb(newRoleTitle,newRoleSalary,department_id);
+        
+    })
+}
+
+// function addDepartment() {
+//     inquirer.prompt([
+//         {
+//         type: "input",
+//         message: "Please type new department name:  ",
+//         name: "newDepartment",
+//         }
+//     ]).then((data) => {
+//         console.log(`${data.newDepartment} - department added`)
+//         // const department = new dbIndex.Department(data.newDepartment)
+//         dbIndex.addDepartment(data.newDepartment);
+        
+//     })  
+// }
 init();

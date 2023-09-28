@@ -1,5 +1,9 @@
 //THEN I am presented with the following options: view all departments, view all roles, view all employees, add a department, add a role, add an employee, and update an employee role
+const util  =require('util')
+const connection = require("./connection");
+const query = util.promisify(connection.query).bind(connection)
 const mysql = require("mysql2");
+const inquirer = require('inquirer');
 require("dotenv").config();
 
 const db = mysql.createConnection({
@@ -9,86 +13,126 @@ const db = mysql.createConnection({
   database: "employeeTracker_db",
 });
 
-const viewDepartments = async (input) => {
-  const stringInput = `SELECT * FROM ${input};`;
-  db.query(stringInput, function (err, results) {
-    if (err) {
-      console.log(error);
-    } else {
-      console.table(results);
+const viewDepartments = async (init) => {
+    try {
+        const output = await query(`SELECT * FROM departments;`);
+        console.table(output)
+        
+        init();
+    }catch (err){
+        console.log(err)
     }
-  });
+   
+  
+  
 };
 
-const viewRoles = async (input) => {
-    const stringInput = `SELECT roles.id as id , title, salary, name AS department FROM roles JOIN departments ON departments.id = roles.department_id `;
-    db.query(stringInput, function (err, results) {
-      if (err) {
-        console.log(error);
-      } else {
-        console.table(results);
-      }
-    });
-  };
+const viewRoles = async (init) => {
+    try {
+        const output = await query(`SELECT roles.id as id , title, salary, name AS department FROM roles JOIN departments ON departments.id = roles.department_id `);
+        console.table(output);
+        
+        init();
+    }catch{
+        console.log(err)
+        
+    }
+}
 
-  const viewRoles = async (input) => {
-    const stringInput = `SELECT roles.id as id , title, salary, name AS department FROM roles JOIN departments ON departments.id = roles.department_id `;
-    db.query(stringInput, function (err, results) {
-      if (err) {
-        console.log(error);
-      } else {
-        console.table(results);
-      }
-    });
+   
+
+  const viewEmployees = async (init) => {
+
+    try{
+        const output = await query(`SELECT * FROM employees`);
+        console.table(output);
+        
+        init();
+    }catch{
+        console.log(err)
+    }
+    
   };
 
 const getDepartmentArray = async () => {
-  db.query("SELECT * FROM departments", function (err, data) {
-    if (err) {
-      console.log(error);
-    } else {
-      console.log(data);
-      return data;
-    }
-  });
+    try{
+        const output = await query("SELECT id AS value, name FROM departments");
+        return output;
+    }catch (err)
+    {
+        console.log(err)
+    }    
+  
 };
 
-const addDepartment = async (newDepartment) => {
-  db.query(
-    `INSERT INTO departments(name) VALUES (?)`,
-    newDepartment,
-    (err, data) => {
-      if (err) {
-        console.log(err);
-      } else {
-        console.log(`${newDepartment} added successfully to departments table`);
-        viewDepartments();
-      }
+const addDepartment = async (init) => {
+    try{
+        const data = await inquirer.prompt([
+            {
+            type: "input",
+            message: "Please type new department name:  ",
+            name: "newDepartment",
+            }
+        ])
+        const output = await query(`INSERT INTO departments(name) VALUES (?)`,data.newDepartment);
+        console.log("Department added Successfully")
+        init();
     }
-  );
-};
+    catch {
+        console.log(err)
+    }
+}
 
-const addRole = async (title, salary, department) => {
-  let idName;
-  const string2 = `SELECT id from departments WHERE name = "${department}"`;
-  db.query(string2, (err, data) => {
-    if (err) {
-      console.log(err);
-    } else {
-      idName = data[0].id;
-      const string1 = `INSERT INTO roles(title,salary,department_id) VALUES ("${title}", ${salary},${idName})`;
-      db.query(string1, (err, data) => {
-        if (err) {
-          console.log("ERORRRRRRR");
-          console.log(err);
-        } else {
-          console.log(`Role added Successfully`);
-          viewRoles();
-        }
-      });
+ const addRole = async (init) => {
+    try{
+        const departmentArray = await getDepartmentArray();
+        const data = await inquirer.prompt([
+            {
+            type: "input",
+            message: "Please enter Title of role:  ",
+            name: "newRoleTitle",
+            },
+            {
+            type: "input",
+            message: "Please enter role's salary:  ",
+            name: "newRoleSalary",
+            },
+            {
+            type: "rawlist",
+            message: "Please enter what Department this role is in: ",
+            choices: roles,
+            name: "department_id",
+            }
+        ])
+        const output = await 
+        
+    }catch (err){
+        console.log(err)
     }
-  });
-};
+ }
+
+// const addRole = async (init) => {
+//   let idName;
+//   const string2 = `SELECT id from departments WHERE name = "${department}"`;
+//   db.query(string2, (err, data) => {
+//     if (err) {
+//       console.log(err);
+//     } else {
+//         console.log(data)
+//       idName = data[0].id;
+//       const string1 = `INSERT INTO roles(title,salary,department_id) VALUES ("${title}", ${salary},${idName})`;
+//       db.query(string1, (err, data) => {
+//         if (err) {
+//           console.log("ERORRRRRRR");
+//           console.log(err);
+//         } else {
+//           console.log(`Role added Successfully`);
+//           viewRoles();
+//         }
+//       });
+//     }
+//   });
+// };
 
 const addEmployee = async (first_name, last_name, role, manager) => {
   let roleId;
@@ -262,7 +306,9 @@ const updateEmployeeRole = async (firstName, updatedRole) => {
 // }
 
 module.exports = {
-  view,
+  viewDepartments,
+  viewRoles,
+  viewEmployees,
   addDepartment,
   addRole,
   addEmployee,
